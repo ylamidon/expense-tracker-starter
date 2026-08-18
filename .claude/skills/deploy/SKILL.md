@@ -11,7 +11,24 @@ Three gates, run in order. **Each gate must pass before the next one starts.** A
 
 1. `git status --porcelain` -- the working tree must be clean. If it is dirty, stop and ask the user to commit or stash first; do not commit on their behalf.
 2. `git rev-parse --abbrev-ref HEAD` -- note the current branch, you return to it at the end.
-3. `npm ci` if `node_modules/` is missing or `package-lock.json` is newer than it; otherwise skip.
+3. Check for a running dev server **before touching `node_modules`**:
+
+   ```bash
+   # Windows / Git Bash
+   powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='esbuild.exe' OR Name='node.exe'\" | Where-Object { \$_.CommandLine -match 'vite|esbuild' } | Select-Object ProcessId, CommandLine"
+   ```
+
+   A live `npm run dev` holds `node_modules/@esbuild/*/esbuild.exe` open. On Windows any install that deletes that file fails with `EPERM` **partway through**, leaving `node_modules` half-deleted and the project unbuildable. If a dev server is running, do not run `npm ci` -- either use `npm install` (step 4) or ask the user to stop the server first.
+
+4. Install dependencies only if they are actually out of sync -- **never on an mtime comparison**. `package-lock.json` is routinely a few seconds newer than `node_modules/` purely from install ordering, and that skew is not a dependency change:
+
+   ```bash
+   npm ls >/dev/null 2>&1 || npm install
+   ```
+
+   `npm ls` exits non-zero on missing, extraneous, or version-mismatched packages -- that is the real signal. Prefer `npm install`: it adds what is missing and is safe next to a running dev server. Reserve `npm ci` for a verified-clean reinstall with no dev server running, and know that it **wipes `node_modules` first**, so a mid-run failure is destructive.
+
+   If an install does fail partway, treat repairing `node_modules` as the immediate priority -- verify with `npm ls` and the presence of `node_modules/.bin/vite` before continuing. Report the breakage and the repair; do not silently move on to the gates.
 
 ## Gate 1 -- Tests
 

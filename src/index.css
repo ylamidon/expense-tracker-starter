@@ -1,3 +1,25 @@
+:root {
+  color-scheme: dark;
+
+  /* Dark dashboard palette. The three money colors are semantic and always sit
+     next to a written label, never carrying meaning by color alone. */
+  --bg: #0b0f16;
+  --card: #141a24;
+  --card-hi: #1b2230;
+  --field: #10151d;
+  --border: #232c3b;
+  --text: #e6ebf2;
+  --text-2: #9fabbd;
+  --text-3: #7e8a9d;
+
+  --income: #34d399;
+  --expense: #f43f5e;
+  --balance: #818cf8;
+
+  --font-ui: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -5,7 +27,28 @@
 }
 
 body {
-  font-family: Arial, sans-serif;
-  background-color: #ffffff;
-  color: #333;
+  font-family: var(--font-ui);
+  background-color: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:focus-visible {
+  outline: 2px solid var(--balance);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(129, 140, 248, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

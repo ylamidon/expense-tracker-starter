@@ -21,17 +21,27 @@ Single-page React 19 + Vite app, JavaScript (`.jsx`, no TypeScript despite the `
 Four components, one file each, flat in [src/](src/) -- no `components/` directory, no routing, no state management library, no persistence (state is lost on reload), no backend/API:
 
 ```
-App  (src/App.jsx)                              state: transactions, const categories
-|-- Summary          transactions               derives totalIncome / totalExpenses / balance
-|-- TransactionForm  categories, onAdd          state: description, amount, type, category
-+-- TransactionList  transactions, categories   state: filterType, filterCategory
+App  (src/App.jsx)                                       state: transactions, const categories
+|-- Summary          transactions                        income / expenses / balance + the spend rail
+|-- CategoryChart    transactions                        recharts bars, upright >720px, horizontal below
+|-- TransactionForm  categories, onAdd                   state: description, amount, type, category, error
++-- TransactionList  transactions, categories, onDelete  state: filterType, filterCategory
 ```
+
+[src/format.js](src/format.js) holds the shared `formatMoney` / `formatDate` / `capitalize` helpers (a plain `.js` module, not a `.jsx` one, so the `react-refresh` rule below stays satisfied). Money is always run through `formatMoney` -- never interpolated raw -- so thousands separators and tabular figures stay consistent.
 
 `App` is a composition root: it owns only `transactions` (the one piece of shared state) and hands `addTransaction` to the form as `onAdd`. Each child keeps the state nobody else needs -- form fields in [src/TransactionForm.jsx](src/TransactionForm.jsx), filter selects in [src/TransactionList.jsx](src/TransactionList.jsx). Derived values (`totalIncome`, `totalExpenses`, `balance` in [src/Summary.jsx](src/Summary.jsx); `filteredTransactions` in `TransactionList`) are recomputed inline on every render -- no memoization. `categories` lives in `App` and is prop-drilled to both children.
 
 Transaction shape: `{ id, description, amount, type, category, date }` where `amount` is a **number** and `type` is `"income" | "expense"`. The form's `amount` input state is a string (a controlled `<input>` requires that) and is converted with `Number()` at insertion, in [src/TransactionForm.jsx:16](src/TransactionForm.jsx#L16).
 
-Styling is plain CSS, no CSS modules: global [src/index.css](src/index.css) plus [src/App.css](src/App.css) imported once by `App`. Child components use its class names (`.summary-card`, `.add-transaction`, `.transactions`, `.income-amount`, `.expense-amount`) without importing anything.
+Styling is plain CSS, no CSS modules: [src/index.css](src/index.css) holds the design tokens and base rules, [src/App.css](src/App.css) holds every component rule and is imported once by `App`. Child components use its class names (`.card`, `.stat`, `.rail`, `.entry-form`, `.ledger-table`, `.cell-amount--in` / `--out`) without importing anything.
+
+The theme is dark-only: near-black ground, elevated `.card` surfaces, and three semantic money colors (`--income` green, `--expense` red, `--balance` indigo) that always sit beside a written label, never carrying meaning by color alone. Type is Plus Jakarta Sans for UI and JetBrains Mono for every figure and small label, both loaded from Google Fonts in [index.html](index.html); all money uses `font-variant-numeric: tabular-nums`.
+
+Two things to preserve when touching CSS or the chart:
+
+- `.ledger-table th` is an element-scoped selector, so a bare `.col-amount` class loses to it -- alignment overrides on table headers must be written `.ledger-table th.col-amount`.
+- `CATEGORY_COLORS` in [src/CategoryChart.jsx](src/CategoryChart.jsx) is a validated palette, not a free choice: the slots are ordered so adjacent ones clear the colorblind separation check against this surface. Re-run the check before changing a hue.
 
 ## Context: this is a deliberately flawed starter
 
@@ -42,7 +52,6 @@ Already fixed (do not reintroduce): amounts used to be stored as strings, so `su
 Remaining planted issues (leave them unless asked to fix):
 
 - The sample row `"Freelance Work"` is `type: "expense"` with `category: "salary"` ([src/App.jsx:12](src/App.jsx#L12)), so it counts against the balance.
-- The transactions table has a trailing empty `<th>`/`<td>` column ([src/TransactionList.jsx:39](src/TransactionList.jsx#L39), [src/TransactionList.jsx:51](src/TransactionList.jsx#L51)) -- a placeholder for a delete action that was never implemented.
 
 ## Conventions
 

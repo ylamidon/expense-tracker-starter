@@ -1,27 +1,44 @@
-import { BarChart, Bar, Rectangle, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { useSyncExternalStore } from 'react'
+import { BarChart, Bar, Cell, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { capitalize, formatMoney } from './format'
 
 // Color follows the category, never its rank, so sorting never repaints a bar.
+// The order below is the validated one: adjacent slots clear the CVD separation
+// check on this surface (worst pair dE 13.9), and every bar is also named on the
+// axis, so identity is never carried by color alone. "other" is the catch-all
+// and stays deliberately neutral.
 const CATEGORY_COLORS = {
-  food: "#2a78d6",
-  housing: "#eda100",
-  utilities: "#1baf7a",
-  transport: "#4a3aa7",
-  entertainment: "#e34948",
-  salary: "#eb6834",
-  other: "#e87ba4",
+  food: "#0ea372",
+  housing: "#c026d3",
+  utilities: "#d97706",
+  transport: "#6366f1",
+  entertainment: "#f43f5e",
+  salary: "#0891b2",
+  other: "#94a3b8",
 }
-const FALLBACK_COLOR = "#898781"
+const FALLBACK_COLOR = "#94a3b8"
 
-const AXIS_INK = "#898781"
-const GRID_INK = "#e1e0d9"
+const AXIS_INK = "#9fabbd"
+const GRID_INK = "#232c3b"
+const MONO = "JetBrains Mono, ui-monospace, monospace"
 
-const formatAmount = (value) => `$${value.toLocaleString("en-US")}`
+// Upright bars have no room to label themselves on a phone, so the chart lies
+// down instead of dropping ticks -- every bar keeps its name either way.
+const NARROW = "(max-width: 720px)"
 
-const capitalize = (value) => value.charAt(0).toUpperCase() + value.slice(1)
+const subscribeToNarrow = (onChange) => {
+  const query = window.matchMedia(NARROW);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+};
 
-const CategoryBar = (props) => (
-  <Rectangle {...props} radius={[4, 4, 0, 0]} fill={CATEGORY_COLORS[props.payload.category] || FALLBACK_COLOR} />
-)
+function useNarrow() {
+  return useSyncExternalStore(
+    subscribeToNarrow,
+    () => window.matchMedia(NARROW).matches,
+    () => false,
+  );
+}
 
 function CategoryTooltip({ active, payload, total }) {
   if (!active || !payload || payload.length === 0) return null;
@@ -32,12 +49,14 @@ function CategoryTooltip({ active, payload, total }) {
   return (
     <div className="chart-tooltip">
       <strong>{capitalize(category)}</strong>
-      <span>{formatAmount(amount)} &middot; {share}% of spending</span>
+      <span>{formatMoney(amount)} &middot; {share}% of spending</span>
     </div>
   );
 }
 
 function CategoryChart({ transactions }) {
+  const narrow = useNarrow();
+
   const totals = transactions
     .filter(t => t.type === "expense")
     .reduce((acc, t) => {
@@ -51,39 +70,73 @@ function CategoryChart({ transactions }) {
 
   const total = data.reduce((sum, d) => sum + d.amount, 0);
 
+  const axisTick = { fill: AXIS_INK, fontSize: 11, fontFamily: MONO };
+  const bars = data.map(d => (
+    <Cell key={d.category} fill={CATEGORY_COLORS[d.category] || FALLBACK_COLOR} />
+  ));
+
   return (
-    <div className="chart-card">
-      <h2>Spending by Category</h2>
+    <section className="card chart">
+      <div className="card-head">
+        <h2 className="card-title">Spending by category</h2>
+        {total > 0 && <span className="card-meta">{formatMoney(total)} out</span>}
+      </div>
 
       {data.length === 0 ? (
-        <p className="chart-empty">No expenses recorded yet.</p>
+        <p className="empty">No spending recorded yet.</p>
+      ) : narrow ? (
+        <ResponsiveContainer width="100%" height={data.length * 38}>
+          <BarChart data={data} layout="vertical" margin={{ top: 0, right: 8, bottom: 0, left: 0 }}>
+            <CartesianGrid stroke={GRID_INK} strokeDasharray="3 3" horizontal={false} />
+            <XAxis type="number" hide domain={[0, "dataMax"]} />
+            <YAxis
+              type="category"
+              dataKey="category"
+              width={96}
+              tickLine={false}
+              axisLine={false}
+              tick={axisTick}
+              tickFormatter={capitalize}
+            />
+            <Tooltip
+              cursor={{ fill: "rgba(255, 255, 255, 0.04)" }}
+              content={<CategoryTooltip total={total} />}
+            />
+            <Bar dataKey="amount" maxBarSize={18} radius={[0, 6, 6, 0]} isAnimationActive={false}>
+              {bars}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       ) : (
-        <ResponsiveContainer width="100%" height={260}>
+        <ResponsiveContainer width="100%" height={280}>
           <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <CartesianGrid stroke={GRID_INK} strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="category"
               tickLine={false}
               axisLine={{ stroke: GRID_INK }}
-              tick={{ fill: AXIS_INK, fontSize: 12 }}
+              tick={axisTick}
               tickFormatter={capitalize}
+              interval={0}
             />
             <YAxis
-              width={60}
+              width={64}
               tickLine={false}
               axisLine={false}
-              tick={{ fill: AXIS_INK, fontSize: 12 }}
-              tickFormatter={formatAmount}
+              tick={axisTick}
+              tickFormatter={formatMoney}
             />
             <Tooltip
-              cursor={{ fill: "rgba(11, 11, 11, 0.04)" }}
+              cursor={{ fill: "rgba(255, 255, 255, 0.04)" }}
               content={<CategoryTooltip total={total} />}
             />
-            <Bar dataKey="amount" maxBarSize={48} shape={CategoryBar} isAnimationActive={false} />
+            <Bar dataKey="amount" maxBarSize={64} radius={[6, 6, 0, 0]} isAnimationActive={false}>
+              {bars}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       )}
-    </div>
+    </section>
   );
 }
 

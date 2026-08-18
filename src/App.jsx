@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './App.css'
+import { formatDate } from './format'
 import Summary from './Summary'
 import CategoryChart from './CategoryChart'
 import TransactionForm from './TransactionForm'
@@ -27,18 +28,29 @@ function App() {
     setTransactions(transactions.filter(t => t.id !== id));
   };
 
+  const latestDate = transactions.reduce((latest, t) => (t.date > latest ? t.date : latest), "");
+
   return (
     <div className="app">
-      <h1>Finance Tracker</h1>
-      <p className="subtitle">Track your income and expenses</p>
+      <header className="masthead">
+        <div>
+          <p className="eyebrow">Personal ledger</p>
+          <h1 className="wordmark">Finance Tracker</h1>
+        </div>
+        <p className="masthead-meta">
+          <span>{transactions.length} {transactions.length === 1 ? "entry" : "entries"}</span>
+          {latestDate && <span>latest {formatDate(latestDate)}</span>}
+        </p>
+      </header>
 
       <Summary transactions={transactions} />
 
       <CategoryChart transactions={transactions} />
 
-      <TransactionForm categories={categories} onAdd={addTransaction} />
-
-      <TransactionList transactions={transactions} categories={categories} onDelete={deleteTransaction} />
+      <div className="workspace">
+        <TransactionForm categories={categories} onAdd={addTransaction} />
+        <TransactionList transactions={transactions} categories={categories} onDelete={deleteTransaction} />
+      </div>
     </div>
   );
 }

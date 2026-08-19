@@ -1,17 +1,17 @@
-import { useState } from 'react'
-import './App.css'
-import { formatDate } from './format'
-import Summary from './Summary'
-import CategoryChart from './CategoryChart'
-import TransactionForm from './TransactionForm'
-import TransactionList from './TransactionList'
+import { useState } from "react";
+import "./App.css";
+import { formatDate } from "./format";
+import Summary from "./Summary";
+import CategoryChart from "./CategoryChart";
+import TransactionForm from "./TransactionForm";
+import TransactionList from "./TransactionList";
 
 function App() {
   const [transactions, setTransactions] = useState([
     { id: 1, description: "Salary", amount: 5000, type: "income", category: "salary", date: "2025-01-01" },
     { id: 2, description: "Rent", amount: 1200, type: "expense", category: "housing", date: "2025-01-02" },
     { id: 3, description: "Groceries", amount: 150, type: "expense", category: "food", date: "2025-01-03" },
-    { id: 4, description: "Freelance Work", amount: 800, type: "expense", category: "salary", date: "2025-01-05" },
+    { id: 4, description: "Freelance Work", amount: 800, type: "income", category: "salary", date: "2025-01-05" },
     { id: 5, description: "Electric Bill", amount: 95, type: "expense", category: "utilities", date: "2025-01-06" },
     { id: 6, description: "Dinner Out", amount: 65, type: "expense", category: "food", date: "2025-01-07" },
     { id: 7, description: "Gas", amount: 45, type: "expense", category: "transport", date: "2025-01-08" },
@@ -25,7 +25,7 @@ function App() {
   };
 
   const deleteTransaction = (id) => {
-    setTransactions(transactions.filter(t => t.id !== id));
+    setTransactions(transactions.filter((t) => t.id !== id));
   };
 
   const latestDate = transactions.reduce((latest, t) => (t.date > latest ? t.date : latest), "");
@@ -38,7 +38,9 @@ function App() {
           <h1 className="wordmark">Finance Tracker</h1>
         </div>
         <p className="masthead-meta">
-          <span>{transactions.length} {transactions.length === 1 ? "entry" : "entries"}</span>
+          <span>
+            {transactions.length} {transactions.length === 1 ? "entry" : "entries"}
+          </span>
           {latestDate && <span>latest {formatDate(latestDate)}</span>}
         </p>
       </header>
@@ -55,4 +57,4 @@ function App() {
   );
 }
 
-export default App
+export default App;
